@@ -22,7 +22,7 @@ import datetime
 import json
 import glob
 
-INPUT_SIZE = (128, 128)
+# INPUT_SIZE = None
 
 config = json.load(open('./settings.json'))
 DATASET_PATH = config['dataset_path']
@@ -35,12 +35,6 @@ Right_RGB = glob.glob(os.path.join(DATASET_PATH['Right_RGB'], '*png'))
 
 # ----------------------function----------------------------------------------------
 
-
-def get_concat_h(im1, im2):
-    dst = Image.new('RGB', (im1.width + im2.width, im1.height))
-    dst.paste(im1, (0, 0))
-    dst.paste(im2, (im1.width, 0))
-    return dst
 
 def generate_dir_name():
         return datetime.datetime.today().strftime("%Y%m%d_%H%M")
@@ -75,8 +69,8 @@ def get_5channel_img_and_teach_img_from_img_id_list(batch_list, Left_RGB=Left_RG
         input_5_channel_img_list.append(input_5_channel_img)
 
         teach_img = img_to_array(load_img(Right_RGB[i], target_size=INPUT_SIZE)).astype(np.uint8)
+        teach_img=teach_img/255
         teach_img_list.append(teach_img)
-
 # 4次元テンソルに変換している
     return np.stack(input_5_channel_img_list), np.stack(teach_img_list)
 
@@ -104,17 +98,18 @@ model.summary()
 
 # ---------------------------training----------------------------------
 
-batch_size = 16
+batch_size = 12
 train_list, valid_list, test_list = train_valid_test_splits(len(Left_RGB))
 
 train_gen = generator_with_preprocessing(train_list, batch_size)
 valid_gen = generator_with_preprocessing(valid_list, batch_size)
 test_gen = generator_with_preprocessing(test_list, batch_size)
 
-epochs = 500
+epochs = 5
 train_steps = math.ceil(len(train_list) / batch_size)
 valid_steps = math.ceil(len(valid_list) / batch_size)
 test_steps = math.ceil(len(test_list) / batch_size)
+
 
 config = tf.ConfigProto()
 config.gpu_options.per_process_gpu_memory_fraction = 0.9
@@ -122,18 +117,14 @@ config.gpu_options.allow_growth = True
 
 sess = tf.Session(config=config)
 
-tb_cb =TensorBoard(log_dir='./logs', histogram_freq=0, write_graph=True)
-es_cb = EarlyStopping(monitor='val_loss', patience=500, verbose=1, mode='auto')
 
 print("start training.")
-#Pythonジェネレータ（またはSequenceのインスタンス）によりバッチ毎に生成されたデータでモデルを訓練します．
 model.fit_generator(
     generator=train_gen,
     steps_per_epoch=train_steps,
     epochs=epochs,
     validation_data=valid_gen,
-    validation_steps=valid_steps,
-    callbacks=[es_cb, tb_cb])
+    validation_steps=valid_steps)
 
 print("finish training. And start making predict.")
 
@@ -145,15 +136,5 @@ local_dir_name = generate_dir_name()
 dir_name = os.path.join('./Result/output', local_dir_name)
 os.makedirs(dir_name)
 
-for i, num in enumerate(test_list):
-    if i == 1:
-        print(preds[i].astype(np.uint8))
-        
-    pred_img = array_to_img(preds[i].astype(np.uint8))
-    teach_img = load_img(Right_RGB[num], target_size=INPUT_SIZE)
-
-    concat_img=get_concat_h(pred_img,teach_img)
-    array_to_img(concat_img).save(os.path.join(dir_name, f'pred_{num}.png'))
-
-
-
+for i,(truth_left, pred_right) in enumerate(zip(test_gen,preds)):
+    array_to_img(preds[i]).save(f'{i}.png')

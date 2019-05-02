@@ -1,8 +1,8 @@
 {
     "dataset_path": {
-        "Left_RGB": "./Modify/Left_RGB/splits",
-        "Right_RGB": "./Modify/Right_RGB/splits",
-        "Left_disparity": "./Modify/Left_disparity/splits",
-        "Right_disparity": "./Modify/Right_disparity/splits"
+        "Left_RGB": "./Data/Left_RGB/splits",
+        "Right_RGB": "./Data/Right_RGB/splits",
+        "Left_disparity": "./Data/Left_disparity/splits",
+        "Right_disparity": "./Data/Right_disparity/splits"
         }
 }
