@@ -1,3 +1,5 @@
+import argparse
+
 # from keras import backend as K
 import keras.callbacks
 from PIL import Image, ImageOps
@@ -13,7 +15,7 @@ from tensorflow.python import keras
 from tensorflow.python.keras import backend as K
 from tensorflow.python.keras.callbacks import EarlyStopping,TensorBoard
 from tensorflow.python.keras.preprocessing.image import load_img, img_to_array, array_to_img, ImageDataGenerator
-from Models import simple_auto_encoder
+from Models import simple_auto_encoder,deep_auto_encoder
 from tensorflow.python.keras.layers import Input
 
 import tensorflow as tf
@@ -99,79 +101,104 @@ def generator_with_preprocessing(img_id_list, batch_size, shuffle=False):
 
             yield(batch_5, batch_teach)
 
+
+def train(parser):
+
 # ---------------------------model----------------------------------
 
-
-inputs = Input(shape=(128,128,5), dtype='float')
-
-model = simple_auto_encoder.Simple_auto_encoder(inputs).model
-model.compile(optimizer='adam', loss='mse')
-
-model.summary()
-
+    inputs = Input(shape=(128, 128, 5), dtype='float')
+    # model = simple_auto_encoder.Simple_auto_encoder(inputs).model
+    model = deep_auto_encoder.Deep_auto_encoder(inputs).model
+    model.compile(optimizer='adam', loss='mse')
+    model.summary()
 
 # ---------------------------training----------------------------------
 
-batch_size = 16
-train_list, valid_list, test_list = train_valid_test_splits(len(Left_RGB))
+    batch_size = parser.batchsize
+    epochs = parser.epoch
 
-train_gen = generator_with_preprocessing(train_list, batch_size)
-valid_gen = generator_with_preprocessing(valid_list, batch_size)
-test_gen = generator_with_preprocessing(test_list, batch_size)
+    train_list, valid_list, test_list = train_valid_test_splits(len(Left_RGB))
 
-epochs = 100
-train_steps = math.ceil(len(train_list) / batch_size)
-valid_steps = math.ceil(len(valid_list) / batch_size)
-test_steps = math.ceil(len(test_list) / batch_size)
+    train_gen = generator_with_preprocessing(train_list, batch_size)
+    valid_gen = generator_with_preprocessing(valid_list, batch_size)
+    test_gen = generator_with_preprocessing(test_list, batch_size)
 
-config = tf.ConfigProto()
-config.gpu_options.per_process_gpu_memory_fraction = 0.9
-config.gpu_options.allow_growth = True
+    train_steps = math.ceil(len(train_list) / batch_size)
+    valid_steps = math.ceil(len(valid_list) / batch_size)
+    test_steps = math.ceil(len(test_list) / batch_size)
 
+    config = tf.ConfigProto()
+    config.gpu_options.per_process_gpu_memory_fraction = 0.9
+    config.gpu_options.allow_growth = True
 
-### add for TensorBoard
-# old_session = KTF.get_session()
-sess = tf.Session(config=config)
-
-# KTF.set_session(sess)
-# KTF.set_learning_phase(1)
-###
-
-#fit_generatorのコールバック関数の指定・TensorBoardとEarlyStoppingの指定
-tb_cb =TensorBoard(log_dir='./logs', histogram_freq=1, write_graph=True,write_images=True)
-es_cb = EarlyStopping(monitor='val_loss', patience=500, verbose=1, mode='auto')
-
-print("start training.")
-#Pythonジェネレータ（またはSequenceのインスタンス）によりバッチ毎に生成されたデータでモデルを訓練します．
-model.fit_generator(
-    generator=train_gen,
-    steps_per_epoch=train_steps,
-    epochs=epochs,
-    validation_data=valid_gen,
-    validation_steps=valid_steps,
-    callbacks=[es_cb, tb_cb])
-
-print("finish training. And start making predict.")
-
-preds = model.predict_generator(test_gen, steps=test_steps, verbose=1)
+    sess = tf.Session(config=config)
 
 
-print("finish making predict. And render preds.")
-local_dir_name = generate_dir_name()
-dir_name = os.path.join('./Result/output', local_dir_name)
-os.makedirs(dir_name)
+    #fit_generatorのコールバック関数の指定・TensorBoardとEarlyStoppingの指定
+    tb_cb =TensorBoard(log_dir='./logs', histogram_freq=1, write_graph=True,write_images=True)
+    es_cb = EarlyStopping(monitor='val_loss', patience=500, verbose=1, mode='auto')
+
+    print("start training.")
+    #Pythonジェネレータ（またはSequenceのインスタンス）によりバッチ毎に生成されたデータでモデルを訓練します．
+    history=model.fit_generator(
+        generator=train_gen,
+        steps_per_epoch=train_steps,
+        epochs=epochs,
+        validation_data=valid_gen,
+        validation_steps=valid_steps,
+        callbacks=[es_cb, tb_cb])
+
+    print("finish training. And start making predict.")
+
+    preds = model.predict_generator(test_gen, steps=test_steps, verbose=1)
 
 
-# ==========================plot predict====================================
-for i, num in enumerate(test_list):
-    if i == 1:
-        print(preds[i].astype(np.uint8))
-        preds[i]=preds[i]*255
-    pred_img = array_to_img(preds[i].astype(np.uint8))
-    teach_img = load_img(Right_RGB[num], target_size=INPUT_SIZE)
+    print("finish making predict. And render preds.")
+    local_dir_name = generate_dir_name()
+    dir_name = os.path.join('./Result/output', local_dir_name)
+    os.makedirs(dir_name)
 
-    concat_img=get_concat_h(pred_img,teach_img)
-    array_to_img(concat_img).save(os.path.join(dir_name, f'pred_{num}.png'))
 
-model.save("model.h5")
-# KTF.set_session(old_session)
+    # ==========================plot predict====================================
+    for i, num in enumerate(test_list):
+        if i == 1:
+            print(preds[i].astype(np.uint8))
+        pred_img = array_to_img(preds[i].astype(np.uint8))
+        teach_img = load_img(Right_RGB[num], target_size=INPUT_SIZE)
+
+        concat_img=get_concat_h(pred_img,teach_img)
+        array_to_img(concat_img).save(os.path.join(dir_name, f'pred_{num}.png'))
+
+    model.save("model.h5")
+    # KTF.set_session(old_session)
+
+#=================================parser=====================================
+
+
+def get_parser():
+    parser = argparse.ArgumentParser(
+        prog='generate parallax image using U-Net',
+        usage='python main.py',
+        description='This module　generate parallax image using U-Net.',
+        add_help=True
+    )
+
+    parser.add_argument('-e', '--epoch', type=int,
+                        default=100, help='Number of epochs')
+    parser.add_argument('-b', '--batchsize', type=int,
+                        default=16, help='Batch size')
+    parser.add_argument('-t', '--trainrate', type=float,
+                        default=0.85, help='Training rate')
+    parser.add_argument('-es', '--early_stopping', type=float,
+                    default=0.85, help='Training rate')
+
+    parser.add_argument('-a', '--augmentation',
+                        action='store_true', help='Number of epochs')
+    
+
+    return parser
+
+
+if __name__ == '__main__':
+    parser = get_parser().parse_args()
+    train(parser)
