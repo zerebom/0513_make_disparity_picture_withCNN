@@ -27,13 +27,13 @@ import glob
 INPUT_SIZE = (128, 128)
 
 config = json.load(open('./settings.json'))
-DATASET_PATH = config['dataset_path']
+DATASET_PATH = config['dataset_path2']
 
-Left_RGB = glob.glob(os.path.join(DATASET_PATH['Left_RGB'], '*png'))
+Left_RGB = glob.glob(os.path.join(DATASET_PATH['Left_slide'], '*png'))
 Right_disparity = glob.glob(os.path.join(DATASET_PATH['Right_disparity'], '*png'))
 Left_disparity = glob.glob(os.path.join(DATASET_PATH['Left_disparity'], '*png'))
 
-Right_RGB = glob.glob(os.path.join(DATASET_PATH['Right_RGB'], '*png'))
+Right_RGB = glob.glob(os.path.join(DATASET_PATH['Left_RGB'], '*png'))
 
 # ----------------------function----------------------------------------------------
 
@@ -61,8 +61,8 @@ def get_input_and_teach_img_from_img_id_list(batch_list, Left_RGB=Left_RGB, Righ
         # input_img = input_img / 255
 
         if input_channel == 5:
-            L_DIS = img_to_array(load_img(Left_disparity[i], grayscale=True, target_size=INPUT_SIZE)).astype(np.uint8)
-            R_DIS = img_to_array(load_img(Right_disparity[i], grayscale=True, target_size=INPUT_SIZE)).astype(np.uint8)
+            L_DIS = img_to_array(load_img(Left_disparity[i], color_mode="grayscale", target_size=INPUT_SIZE)).astype(np.uint8)
+            R_DIS = img_to_array(load_img(Right_disparity[i],color_mode = "grayscale", target_size=INPUT_SIZE)).astype(np.uint8)
             input_img = np.concatenate((input_img, L_DIS, R_DIS), 2).astype(np.uint8)
 
         input_img_list.append(input_img)
@@ -94,16 +94,11 @@ def train(parser):
     # inputs = Input(shape=(128, 128, 3), dtype='float')
     input_channel_count = parser.input_channel
     output_channel_count = 3
-    first_layer_filter_count = 32
+    first_layer_filter_count = 64
 
     # network = Simple_auto_encoder(input_channel_count, output_channel_count, first_layer_filter_count)
     network = UNet(input_channel_count, output_channel_count, first_layer_filter_count)
     model = network.get_model()
-
-
-
-    # model = simple_auto_encoder.Simple_auto_encoder(inputs).model
-    # model = deep_auto_encoder.Deep_auto_encoder(inputs).model
 
     model.compile(optimizer='adam', loss='mse')
     model.summary()
@@ -139,11 +134,14 @@ def train(parser):
         epochs=epochs,
         validation_data=valid_gen,
         validation_steps=valid_steps,
+        # use_multiprocessing=True,
         callbacks=[es_cb, tb_cb])
     
     print("finish training. And start making predict.")
-
-    preds = model.predict_generator(test_gen, steps=test_steps, verbose=1)
+    
+    # train_preds = model.predict_generator(train_gen, steps=train_steps, verbose=1)
+    # valid_preds = model.predict_generator(valid_gen, steps=valid_steps, verbose=1)
+    test_preds = model.predict_generator(test_gen, steps=test_steps, verbose=1)
 
     print("finish making predict. And render preds.")
 
@@ -154,9 +152,10 @@ def train(parser):
     reporter.plot_history(history)
     reporter.save_params(parser, history)
     
-    reporter.plot_predict(train_list, Left_RGB, Right_RGB, preds, INPUT_SIZE, save_folder='train')
-    reporter.plot_predict(valid_list, Left_RGB, Right_RGB, preds, INPUT_SIZE,save_folder='valid')
-    reporter.plot_predict(test_list, Left_RGB, Right_RGB, preds, INPUT_SIZE, save_folder='test')
+    input_img_list = []
+    # reporter.plot_predict(train_list, Left_RGB, Right_RGB, train_preds, INPUT_SIZE, save_folder='train')
+    # reporter.plot_predict(valid_list, Left_RGB, Right_RGB, valid_preds, INPUT_SIZE,save_folder='valid')
+    reporter.plot_predict(test_list, Left_RGB, Right_RGB, test_preds, INPUT_SIZE, save_folder='test')
     model.save("model.h5")
 
 
@@ -176,7 +175,7 @@ def get_parser():
     parser.add_argument('-t', '--trainrate', type=float,
                         default=0.85, help='Training rate')
     parser.add_argument('-es', '--early_stopping', type=int,
-                        default=10, help='early_stopping patience')
+                        default=30, help='early_stopping patience')
 
     parser.add_argument('-i', '--input_channel', type=int,
                         default=5, help='input_channel')

@@ -4,5 +4,15 @@
         "Right_RGB": "./Data/Right_RGB/splits",
         "Left_disparity": "./Data/Left_disparity/splits",
         "Right_disparity": "./Data/Right_disparity/splits"
-        }
+        },
+
+    "dataset_path2": {
+        "Left_RGB": "./Data/slide_dis/Modify/Left_RGB/splits",
+        "Right_RGB": "./Data/slide_dis/Modify/Right_RGB/splits",
+        "Left_disparity": "./Data/slide_dis/Modify/Left_disparity/splits",
+        "Right_disparity": "./Data/slide_dis/Modify/Right_disparity/splits",
+        "Left_slide": "./Data/slide_dis/Modify/Left_slide/splits",
+        "Right_slide": "./Data/slide_dis/Modify/Right_slide/splits"
+
+    }
 }

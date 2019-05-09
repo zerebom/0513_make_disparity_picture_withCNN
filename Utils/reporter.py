@@ -47,7 +47,7 @@ class Reporter:
         plt.rcParams["font.size"] = 24  # 全体のフォントサイズが変更されます。
         plt.rcParams['axes.grid'] = True  # make grid
         plt.plot(history.history['loss'], linewidth=1.5, marker='o')
-        plt.plot(history.history['val_loss'], linewidth=1.5, marker='o')
+        plt.plot(history.history['val_loss'], linewidth=1., marker='o')
         plt.tick_params(labelsize=20)
 
         plt.title('model loss')
@@ -58,8 +58,9 @@ class Reporter:
 
         plt.savefig(os.path.join(self.main_dir, title + self.IMAGE_EXTENSION))
         
-        # plt.xlim(10,)
-        plt.ylim(0, mean(history.history['val_loss']))
+        plt.xlim(10, len(history.history['val_loss']))
+        plt.ylim(0, int(history.history['val_loss'][9]*1.1))
+
         plt.savefig(os.path.join(self.main_dir, title +'_remove_outlies_'+ self.IMAGE_EXTENSION))
 
 
@@ -73,6 +74,9 @@ class Reporter:
         parameters.append("Training rate:" + str(parser.trainrate))
         parameters.append("Augmentation:" + str(parser.augmentation))
         parameters.append("input_channel:" + str(parser.input_channel))
+        parameters.append("min_val_loss:" + str(min(history.history['val_loss'])))
+        parameters.append("min_loss:" + str(min(history.history['loss'])))
+
         # parameters.append("L2 regularization:" + str(parser.l2reg))
         output = "\n".join(parameters)
         filename=os.path.join(self.main_dir,self.PARAMETER)
@@ -87,19 +91,26 @@ class Reporter:
         dst.paste(im2, (im1.width, 0))
         return dst
 
-    def plot_predict(self, img_num_list, Left_RGB, Right_RGB, preds, INPUT_SIZE, max_output=20,save_folder='train'):
+    def plot_predict(self, img_num_list, Left_RGB, Right_RGB, preds, INPUT_SIZE, max_output=20,save_folder='train',train_mode=True):
         if len(img_num_list) > max_output:
             img_num_list=img_num_list[:max_output]
         for i, num in enumerate(img_num_list):
             if i == 1:
                 print(preds[i].astype(np.uint8))
-            
-            pred_img = array_to_img(preds[i].astype(np.uint8))
+            if train_mode:
+                 input_img = img_to_array(load_img(Left_RGB[train], target_size=INPUT_SIZE)).astype(np.uint8)
+            L_DIS = img_to_array(load_img(Left_disparity[train], grayscale=True, target_size=INPUT_SIZE)).astype(np.uint8)
+            R_DIS = img_to_array(load_img(Right_disparity[train], grayscale=True, target_size=INPUT_SIZE)).astype(np.uint8)
+            input_img = np.concatenate((input_img, L_DIS, R_DIS), 2).astype(np.uint8)
+            else:
+                pred_img = array_to_img(preds[i].astype(np.uint8))
+           
             train_img = load_img(Left_RGB[num], target_size=INPUT_SIZE)
             teach_img = load_img(Right_RGB[num], target_size=INPUT_SIZE)
             concat_img = self.get_concat_h(train_img, pred_img)
             concat_img = self.get_concat_h(concat_img, teach_img)
             os.makedirs(os.path.join(self.main_dir,save_folder), exist_ok=True)
             array_to_img(concat_img).save(os.path.join(self.main_dir, save_folder, f'pred_{num}.png'))
+
 
 
