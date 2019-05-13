@@ -15,5 +15,5 @@ CNNを使って、視差画像を生成し、一視点画像から立体視画�
 - 解像度を落とさないAutoEncoderを使って学習を進める。
 - 生成する必要がある部分だけ1とした2値行列を入力に入れる。
 
-###　参考
+### 参考  
 https://github.com/satoshiiizuka/siggraph2017_inpainting
