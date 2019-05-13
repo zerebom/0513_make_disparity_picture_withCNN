@@ -29,11 +29,11 @@ INPUT_SIZE = (128, 128)
 config = json.load(open('./settings.json'))
 DATASET_PATH = config['dataset_path2']
 
-Left_RGB = glob.glob(os.path.join(DATASET_PATH['Left_slide'], '*png'))
+Left_RGB = glob.glob(os.path.join(DATASET_PATH['Right_slide'], '*png'))
 Right_disparity = glob.glob(os.path.join(DATASET_PATH['Right_disparity'], '*png'))
 Left_disparity = glob.glob(os.path.join(DATASET_PATH['Left_disparity'], '*png'))
 
-Right_RGB = glob.glob(os.path.join(DATASET_PATH['Left_RGB'], '*png'))
+Right_RGB = glob.glob(os.path.join(DATASET_PATH['Right_RGB'], '*png'))
 
 # ----------------------function----------------------------------------------------
 
@@ -94,7 +94,7 @@ def train(parser):
     # inputs = Input(shape=(128, 128, 3), dtype='float')
     input_channel_count = parser.input_channel
     output_channel_count = 3
-    first_layer_filter_count = 64
+    first_layer_filter_count = 32
 
     # network = Simple_auto_encoder(input_channel_count, output_channel_count, first_layer_filter_count)
     network = UNet(input_channel_count, output_channel_count, first_layer_filter_count)
@@ -175,7 +175,7 @@ def get_parser():
     parser.add_argument('-t', '--trainrate', type=float,
                         default=0.85, help='Training rate')
     parser.add_argument('-es', '--early_stopping', type=int,
-                        default=30, help='early_stopping patience')
+                        default=10, help='early_stopping patience')
 
     parser.add_argument('-i', '--input_channel', type=int,
                         default=5, help='input_channel')
