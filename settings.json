@@ -14,5 +14,6 @@
         "Left_slide": "./Data/slide_dis/Modify/Left_slide/splits",
         "Right_slide": "./Data/slide_dis/Modify/Right_slide/splits"
 
-    }
+    },
+    "TensorBoard_code":"tensorboard --logdir==logs"
 }

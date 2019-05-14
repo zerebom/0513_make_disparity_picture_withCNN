@@ -22,14 +22,14 @@ def ImgSplit(im):
 if __name__ == '__main__':
     # 画像の読み込み
     modify = r'C:\Users\icech\Desktop\lab2019\2019_4\Data\slide_dis\Modify'
-    dir_names = ['Right_slide2']
-# 'Left_disparity', 'Left_RGB', 'Right_disparity', 'Right_RGB', 'Left_slide2',
+    #リサイズ後の画像が入っているディレクトリを指定
+    dir_names = ['Left_disparity', 'Left_RGB', 'Right_disparity', 'Right_RGB', 'Left_slide', 'Right_slide']
     # 写真の種類ごと
     for dir_name in dir_names:
         global_count = 0
         picture_paths = glob.glob(modify + r'\\' + dir_name+r'\\*.png')
         print(picture_paths)
-        splits_dir = modify + r'\\' + dir_name + r'\\splits\\'
+        splits_dir = modify + r'\\' + dir_name + r'\\splits2\\'
         try:
             os.mkdir(splits_dir)
         except:
@@ -48,6 +48,6 @@ if __name__ == '__main__':
             for ig in ImgSplit(pic):
                 local_count += 1
                 global_count += 1
-                # 保存先フォルダの指定
-                ig.save(splits_dir+str(global_count) +
-                        "_"+root+"_"+str(local_count)+ext)
+                # 保存先フォルダの指定(0埋めしている)
+                ig.save(splits_dir+str(global_count).zfill(3) +
+                        "_" + root + "_" + str(local_count).zfill(3) + ext)

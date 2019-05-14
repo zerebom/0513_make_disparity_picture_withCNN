@@ -24,7 +24,7 @@ from Utils.reporter import Reporter
 import json
 import glob
 
-INPUT_SIZE = (128, 128)
+INPUT_SIZE = (256, 256)
 
 config = json.load(open('./settings.json'))
 DATASET_PATH = config['dataset_path2']
@@ -32,14 +32,13 @@ DATASET_PATH = config['dataset_path2']
 Left_RGB = glob.glob(os.path.join(DATASET_PATH['Right_slide'], '*png'))
 Right_disparity = glob.glob(os.path.join(DATASET_PATH['Right_disparity'], '*png'))
 Left_disparity = glob.glob(os.path.join(DATASET_PATH['Left_disparity'], '*png'))
-
 Right_RGB = glob.glob(os.path.join(DATASET_PATH['Right_RGB'], '*png'))
 
 # ----------------------function----------------------------------------------------
 
 
 
-def train_valid_test_splits(img_total_num, train_rate=0.8, valid_rate=0.1, test_rate=0.1):
+def train_valid_test_splits(img_total_num:'int', train_rate=0.8, valid_rate=0.1, test_rate=0.1):
     data_array = list(range(img_total_num))
     tr = math.floor(img_total_num * train_rate)
     vl = math.floor(img_total_num * (train_rate + valid_rate))
@@ -52,8 +51,8 @@ def train_valid_test_splits(img_total_num, train_rate=0.8, valid_rate=0.1, test_
     return train_list, valid_list, test_list
 
 
-def get_input_and_teach_img_from_img_id_list(batch_list, Left_RGB=Left_RGB, Right_RGB=Right_RGB, Left_disparity=Left_disparity,
-                                             Right_disparity=Right_disparity, input_channel=3, INPUT_SIZE=(128, 128)):
+def get_input_and_teach_img_from_img_id_list(batch_list:'list in int', Left_RGB=Left_RGB, Right_RGB=Right_RGB, Left_disparity=Left_disparity,
+                                             Right_disparity=Right_disparity, input_channel=3, INPUT_SIZE=INPUT_SIZE) -> '4dims pic array':
     teach_img_list = []
     input_img_list = []
     for i in batch_list:
@@ -123,7 +122,11 @@ def train(parser):
     sess = tf.Session(config=config)
 
     # fit_generatorのコールバック関数の指定・TensorBoardとEarlyStoppingの指定
-    tb_cb = TensorBoard(log_dir='./logs', histogram_freq=1, write_graph=True, write_images=True)
+    
+    logdir=os.path.join('./logs',dt.today().strftime("%Y%m%d_%H%M"))
+    os.makedirs(logdir, exist_ok=True)
+    tb_cb = TensorBoard(log_dir=logdir, histogram_freq=1, write_graph=True, write_images=True)
+
     es_cb = EarlyStopping(monitor='val_loss', patience=parser.early_stopping, verbose=1, mode='auto')
 
     print("start training.")
