@@ -97,13 +97,7 @@ class Reporter:
         for i, num in enumerate(img_num_list):
             if i == 1:
                 print(preds[i].astype(np.uint8))
-            # if train_mode:
-            #     input_img = img_to_array(load_img(Left_RGB[train], target_size=INPUT_SIZE)).astype(np.uint8)
-            #     L_DIS = img_to_array(load_img(Left_disparity[train], grayscale=True, target_size=INPUT_SIZE)).astype(np.uint8)
-            #     R_DIS = img_to_array(load_img(Right_disparity[train], grayscale=True, target_size=INPUT_SIZE)).astype(np.uint8)
-            #     input_img = np.concatenate((input_img, L_DIS, R_DIS), 2).astype(np.uint8)
-            # else:
-            
+                        
             pred_img = array_to_img(preds[i].astype(np.uint8))
            
             train_img = load_img(Left_RGB[num], target_size=INPUT_SIZE)

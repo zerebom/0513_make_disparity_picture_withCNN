@@ -20,77 +20,25 @@ import tensorflow as tf
 import datetime
 from tensorflow import keras
 from Utils.reporter import Reporter
+from Utils.loader import Dataset, Loader
 
 import json
 import glob
 
 INPUT_SIZE = (256, 256)
 
-config = json.load(open('./settings.json'))
-DATASET_PATH = config['dataset_path2']
-
-Left_RGB = glob.glob(os.path.join(DATASET_PATH['Right_slide'], '*png'))
-Right_disparity = glob.glob(os.path.join(DATASET_PATH['Right_disparity'], '*png'))
-Left_disparity = glob.glob(os.path.join(DATASET_PATH['Left_disparity'], '*png'))
-Right_RGB = glob.glob(os.path.join(DATASET_PATH['Right_RGB'], '*png'))
-
-# ----------------------function----------------------------------------------------
-
-
-
-def train_valid_test_splits(img_total_num:'int', train_rate=0.8, valid_rate=0.1, test_rate=0.1):
-    data_array = list(range(img_total_num))
-    tr = math.floor(img_total_num * train_rate)
-    vl = math.floor(img_total_num * (train_rate + valid_rate))
-
-    random.shuffle(data_array)
-    train_list = data_array[:tr]
-    valid_list = data_array[tr:vl]
-    test_list = data_array[vl:]
-
-    return train_list, valid_list, test_list
-
-
-def get_input_and_teach_img_from_img_id_list(batch_list:'list in int', Left_RGB=Left_RGB, Right_RGB=Right_RGB, Left_disparity=Left_disparity,
-                                             Right_disparity=Right_disparity, input_channel=3, INPUT_SIZE=INPUT_SIZE) -> '4dims pic array':
-    teach_img_list = []
-    input_img_list = []
-    for i in batch_list:
-        input_img = img_to_array(load_img(Left_RGB[i], target_size=INPUT_SIZE)).astype(np.uint8)
-        # input_img = input_img / 255
-
-        if input_channel == 5:
-            L_DIS = img_to_array(load_img(Left_disparity[i], color_mode="grayscale", target_size=INPUT_SIZE)).astype(np.uint8)
-            R_DIS = img_to_array(load_img(Right_disparity[i],color_mode = "grayscale", target_size=INPUT_SIZE)).astype(np.uint8)
-            input_img = np.concatenate((input_img, L_DIS, R_DIS), 2).astype(np.uint8)
-
-        input_img_list.append(input_img)
-
-        teach_img = img_to_array(load_img(Right_RGB[i], target_size=INPUT_SIZE)).astype(np.uint8)
-        # teach_img = teach_img / 255
-
-        teach_img_list.append(teach_img)
-
-# 4次元テンソルに変換している
-    return np.stack(input_img_list), np.stack(teach_img_list)
-
-
-def generator_with_preprocessing(img_id_list, batch_size, input_channel, shuffle=False):
-    while True:
-        if shuffle:
-            np.random.shuffle(img_id_list)
-        for i in range(0, len(img_id_list), batch_size):
-            batch_list = img_id_list[i:i + batch_size]
-            batch_input, batch_teach = get_input_and_teach_img_from_img_id_list(batch_list, input_channel=input_channel)
-
-            yield(batch_input, batch_teach)
-
 
 def train(parser):
-    reporter=Reporter(parser=parser)
+
+    configs = json.load(open('./settings.json'))
+    reporter = Reporter(parser=parser)
+    loader = Loader(configs['dataset_path2'],parser.batch_size)
+    loader.add_input()
+    tr,val,test=loader.return_gen()
+    
+
     # ---------------------------model----------------------------------
 
-    # inputs = Input(shape=(128, 128, 3), dtype='float')
     input_channel_count = parser.input_channel
     output_channel_count = 3
     first_layer_filter_count = 32
