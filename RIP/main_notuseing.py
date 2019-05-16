@@ -13,9 +13,9 @@ import matplotlib.pyplot as plt
 from tensorflow.python import keras
 # import keras.backend.tensorflow_backend as KTF
 from tensorflow.python.keras import backend as K
-from tensorflow.python.keras.callbacks import EarlyStopping,TensorBoard
+from tensorflow.python.keras.callbacks import EarlyStopping, TensorBoard
 from tensorflow.python.keras.preprocessing.image import load_img, img_to_array, array_to_img, ImageDataGenerator
-from Models import simple_auto_encoder,deep_auto_encoder
+from Models import simple_auto_encoder, deep_auto_encoder
 from tensorflow.python.keras.layers import Input
 
 import tensorflow as tf
@@ -49,8 +49,10 @@ def get_concat_h(im1, im2):
     dst.paste(im2, (im1.width, 0))
     return dst
 
+
 def generate_dir_name():
-        return datetime.datetime.today().strftime("%Y%m%d_%H%M")
+    return datetime.datetime.today().strftime("%Y%m%d_%H%M")
+
 
 def train_valid_test_splits(img_total_num, train_rate=0.8, valid_rate=0.1, test_rate=0.1):
     data_array = list(range(img_total_num))
@@ -66,7 +68,7 @@ def train_valid_test_splits(img_total_num, train_rate=0.8, valid_rate=0.1, test_
 
 
 def get_5channel_img_and_teach_img_from_img_id_list(batch_list, Left_RGB=Left_RGB, Right_RGB=Right_RGB, Left_disparity=Left_disparity,
-                                                  Right_disparity=Right_disparity, INPUT_SIZE=(128, 128)):
+                                                    Right_disparity=Right_disparity, INPUT_SIZE=(128, 128)):
     teach_img_list = []
     input_5_channel_img_list = []
     for i in batch_list:
@@ -74,17 +76,16 @@ def get_5channel_img_and_teach_img_from_img_id_list(batch_list, Left_RGB=Left_RG
         L_DIS = img_to_array(load_img(Left_disparity[i], grayscale=True, target_size=INPUT_SIZE)).astype(np.uint8)
         R_DIS = img_to_array(load_img(Right_disparity[i], grayscale=True, target_size=INPUT_SIZE)).astype(np.uint8)
 
-        L_RGB=L_RGB/255
-        L_DIS=L_DIS/255
-        R_DIS=R_DIS/255
+        L_RGB = L_RGB / 255
+        L_DIS = L_DIS / 255
+        R_DIS = R_DIS / 255
 
         input_5_channel_img = np.concatenate((L_RGB, L_DIS, R_DIS), 2).astype(np.uint8)
         input_5_channel_img_list.append(input_5_channel_img)
 
-
         teach_img = img_to_array(load_img(Right_RGB[i], target_size=INPUT_SIZE)).astype(np.uint8)
         teach_img = teach_img / 255
-        
+
         teach_img_list.append(teach_img)
 
 # 4次元テンソルに変換している
@@ -104,7 +105,7 @@ def generator_with_preprocessing(img_id_list, batch_size, shuffle=False):
 
 def train(parser):
 
-# ---------------------------model----------------------------------
+    # ---------------------------model----------------------------------
 
     inputs = Input(shape=(128, 128, 5), dtype='float')
     # model = simple_auto_encoder.Simple_auto_encoder(inputs).model
@@ -114,7 +115,7 @@ def train(parser):
 
 # ---------------------------training----------------------------------
 
-    batch_size = parser.batchsize
+    batch_size = parser.batch_size
     epochs = parser.epoch
 
     train_list, valid_list, test_list = train_valid_test_splits(len(Left_RGB))
@@ -133,14 +134,13 @@ def train(parser):
 
     sess = tf.Session(config=config)
 
-
-    #fit_generatorのコールバック関数の指定・TensorBoardとEarlyStoppingの指定
-    tb_cb =TensorBoard(log_dir='./logs', histogram_freq=1, write_graph=True,write_images=True)
+    # fit_generatorのコールバック関数の指定・TensorBoardとEarlyStoppingの指定
+    tb_cb = TensorBoard(log_dir='./logs', histogram_freq=1, write_graph=True, write_images=True)
     es_cb = EarlyStopping(monitor='val_loss', patience=500, verbose=1, mode='auto')
 
     print("start training.")
-    #Pythonジェネレータ（またはSequenceのインスタンス）によりバッチ毎に生成されたデータでモデルを訓練します．
-    history=model.fit_generator(
+    # Pythonジェネレータ（またはSequenceのインスタンス）によりバッチ毎に生成されたデータでモデルを訓練します．
+    history = model.fit_generator(
         generator=train_gen,
         steps_per_epoch=train_steps,
         epochs=epochs,
@@ -152,12 +152,10 @@ def train(parser):
 
     preds = model.predict_generator(test_gen, steps=test_steps, verbose=1)
 
-
     print("finish making predict. And render preds.")
     local_dir_name = generate_dir_name()
     dir_name = os.path.join('./Result/output', local_dir_name)
     os.makedirs(dir_name)
-
 
     # ==========================plot predict====================================
     for i, num in enumerate(test_list):
@@ -166,13 +164,13 @@ def train(parser):
         pred_img = array_to_img(preds[i].astype(np.uint8))
         teach_img = load_img(Right_RGB[num], target_size=INPUT_SIZE)
 
-        concat_img=get_concat_h(pred_img,teach_img)
+        concat_img = get_concat_h(pred_img, teach_img)
         array_to_img(concat_img).save(os.path.join(dir_name, f'pred_{num}.png'))
 
     model.save("model.h5")
     # KTF.set_session(old_session)
 
-#=================================parser=====================================
+# =================================parser=====================================
 
 
 def get_parser():
@@ -185,16 +183,15 @@ def get_parser():
 
     parser.add_argument('-e', '--epoch', type=int,
                         default=100, help='Number of epochs')
-    parser.add_argument('-b', '--batchsize', type=int,
+    parser.add_argument('-b', '--batch_size', type=int,
                         default=16, help='Batch size')
     parser.add_argument('-t', '--trainrate', type=float,
                         default=0.85, help='Training rate')
     parser.add_argument('-es', '--early_stopping', type=float,
-                    default=0.85, help='Training rate')
+                        default=0.85, help='Training rate')
 
     parser.add_argument('-a', '--augmentation',
                         action='store_true', help='Number of epochs')
-    
 
     return parser
 

@@ -42,11 +42,9 @@ train_generator = train_datagen.flow_from_directory(train_data_dir,
                                                     target_size=(img_width, img_height), batch_size=batch_size, class_mode=None)
 # テストデータ作成をディレクトリ内のデータから随時作成するジェネレータ
 
+
 def img_gen_concat(img_gen):
     for batch_img in img_gen:
-        
-
-
 
 
 def train_valid_test_splits(img_total_num, train_rate=0.8, valid_rate=0.1, test_rate=0.1):
@@ -117,7 +115,7 @@ def train(parser):
     model.summary()
 
     # ---------------------------training----------------------------------
-    batch_size = parser.batchsize
+    batch_size = parser.batch_size
     epochs = parser.epoch
 
     train_list, valid_list, test_list = train_valid_test_splits(len(Left_RGB))
@@ -181,7 +179,7 @@ def get_parser():
 
     parser.add_argument('-e', '--epoch', type=int,
                         default=100, help='Number of epochs')
-    parser.add_argument('-b', '--batchsize', type=int,
+    parser.add_argument('-b', '--batch_size', type=int,
                         default=16, help='Batch size')
     parser.add_argument('-t', '--trainrate', type=float,
                         default=0.85, help='Training rate')

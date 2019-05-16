@@ -51,7 +51,7 @@ class Reporter:
     def save_params(filename, parser):
         parameters = list()
         parameters.append("Number of epochs:" + str(parser.epoch))
-        parameters.append("Batch size:" + str(parser.batchsize))
+        parameters.append("Batch size:" + str(parser.batch_size))
         parameters.append("Training rate:" + str(parser.trainrate))
         parameters.append("Augmentation:" + str(parser.augmentation))
         parameters.append("L2 regularization:" + str(parser.l2reg))
@@ -108,7 +108,7 @@ class Reporter:
     def get_imageset(image_in_np, image_out_np, image_tc_np, palette, index_void=None):
         assert image_in_np.shape[:2] == image_out_np.shape[:2] == image_tc_np.shape[:2]
         image_out, image_tc = Reporter.cast_to_pil(image_out_np, palette, index_void),\
-                              Reporter.cast_to_pil(image_tc_np, palette, index_void)
+            Reporter.cast_to_pil(image_tc_np, palette, index_void)
         image_concated = Reporter.concat_images(image_out, image_tc, palette, "P").convert("RGB")
         # npから画像を作成する
         image_in_pil = Image.fromarray(np.uint8(image_in_np * 255), mode="RGB")
@@ -164,10 +164,8 @@ class MatPlot:
         plt.xlabel(self._xlabel)
         plt.ylabel(self._ylabel)
         plt.title(self._title)
-        plt.savefig(os.path.join(self._root_dir, self._filename+self.EXTENSION))
+        plt.savefig(os.path.join(self._root_dir, self._filename + self.EXTENSION))
 
 
 if __name__ == "__main__":
     pass
-
-

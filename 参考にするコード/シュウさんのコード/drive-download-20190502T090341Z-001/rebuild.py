@@ -22,7 +22,7 @@ def ParseArgs():
     parser.add_argument("-p", "--patchsize", help="Patch size. (ex. 44x44x28)", default="44x44x28")
     parser.add_argument("-c", "--nclasses", help="Number of classes of segmentaiton including background.", default=14, type=int)
     parser.add_argument("-e", "--epochs", help="Number of epochs", default=30, type=int)
-    parser.add_argument("-b", "--batchsize", help="Batch size*(Warning:memory use a lot)", default=3, type=int)
+    parser.add_argument("-b", "--batch_size", help="Batch size*(Warning:memory use a lot)", default=3, type=int)
     parser.add_argument("-l", "--learningrate", help="Learning rate", default=1e-4, type=float)
     parser.add_argument("--weightfile", help="The filename of the trained weight parameters file for fine tuning or resuming.")
     parser.add_argument("--initialepoch", help="Epoch at which to start training for resuming a previous training", default=0, type=int)
@@ -217,19 +217,19 @@ def main(_):
 
     #read dataset
     trainingdatalist = ReadSliceDataList(args.datafile)
-    train_data = GenerateBatchData(trainingdatalist, paddingsize, batch_size = args.batchsize)
+    train_data = GenerateBatchData(trainingdatalist, paddingsize, batch_size = args.batch_size)
     if args.testfile is not None:
         testdatalist = ReadSliceDataList(args.testfile)
         #testdatalist = random.sample(testdatalist, int(len(testdatalist)*0.3))
-        validation_data = GenerateBatchData(testdatalist, paddingsize, batch_size = args.batchsize)
-        validation_steps = len(testdatalist) / args.batchsize
+        validation_data = GenerateBatchData(testdatalist, paddingsize, batch_size = args.batch_size)
+        validation_steps = len(testdatalist) / args.batch_size
     else:
         validation_data = None
         validation_steps = None
 
-    steps_per_epoch = len(trainingdatalist) / args.batchsize
+    steps_per_epoch = len(trainingdatalist) / args.batch_size
     print ("Number of samples:", len(trainingdatalist))
-    print ("Batch size:", args.batchsize)
+    print ("Batch size:", args.batch_size)
     print ("Number of Epochs:", args.epochs)
     print ("Learning rate:", args.learningrate)
     print ("Number of Steps/epoch:", steps_per_epoch)

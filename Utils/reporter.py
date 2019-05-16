@@ -7,8 +7,6 @@ import matplotlib.pyplot as plt
 from tensorflow.python.keras.preprocessing.image import load_img, img_to_array, array_to_img, ImageDataGenerator
 
 
-
-
 class Reporter:
     ROOT_DIR = "Result"
     IMAGE_DIR = "image"
@@ -22,7 +20,7 @@ class Reporter:
     def __init__(self, result_dir=None, parser=None):
         self._root_dir = self.ROOT_DIR
         self.create_dirs()
-    
+        self.parameters = list()
     # def make_main_dir(self):
 
     def add_model_name(self, model_name):
@@ -57,28 +55,30 @@ class Reporter:
         plt.tight_layout()
 
         plt.savefig(os.path.join(self.main_dir, title + self.IMAGE_EXTENSION))
-        
-        plt.xlim(10, len(history.history['val_loss']))
-        plt.ylim(0, int(history.history['val_loss'][9]*1.1))
+        if len(history.history['val_loss'])>=10:
+            plt.xlim(10, len(history.history['val_loss']))
+            plt.ylim(0, int(history.history['val_loss'][9]*1.1))
 
         plt.savefig(os.path.join(self.main_dir, title +'_remove_outlies_'+ self.IMAGE_EXTENSION))
 
+    def add_log_documents(self, add_message):
+        self.parameters.append(add_message)
 
 
     
     def save_params(self,parser,history):
-        parameters = list()
+        
         #early_stoppingを考慮
-        parameters.append("Number of epochs:" + str(len(history.history['val_loss'])))
-        parameters.append("Batch size:" + str(parser.batchsize))
-        parameters.append("Training rate:" + str(parser.trainrate))
-        parameters.append("Augmentation:" + str(parser.augmentation))
-        parameters.append("input_channel:" + str(parser.input_channel))
-        parameters.append("min_val_loss:" + str(min(history.history['val_loss'])))
-        parameters.append("min_loss:" + str(min(history.history['loss'])))
+        self.parameters.append("Number of epochs:" + str(len(history.history['val_loss'])))
+        self.parameters.append("Batch size:" + str(parser.batch_size))
+        self.parameters.append("Training rate:" + str(parser.trainrate))
+        self.parameters.append("Augmentation:" + str(parser.augmentation))
+        self.parameters.append("input_channel:" + str(parser.input_channel))
+        self.parameters.append("min_val_loss:" + str(min(history.history['val_loss'])))
+        self.parameters.append("min_loss:" + str(min(history.history['loss'])))
 
-        # parameters.append("L2 regularization:" + str(parser.l2reg))
-        output = "\n".join(parameters)
+        # self.parameters.append("L2 regularization:" + str(parser.l2reg))
+        output = "\n".join(self.parameters)
         filename=os.path.join(self.main_dir,self.PARAMETER)
 
         with open(filename, mode='w') as f:

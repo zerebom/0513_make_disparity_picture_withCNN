@@ -6,7 +6,9 @@ from util import loader as ld
 from util import model
 from util import repoter as rp
 
-#loader.pyを使ってる
+# loader.pyを使ってる
+
+
 def load_dataset(train_rate):
     loader = ld.Loader(dir_original="data_set/VOC2012/JPEGImages",
                        dir_segmented="data_set/VOC2012/SegmentationClass")
@@ -61,7 +63,7 @@ def train(parser):
     # モデルの訓練
     # Train the model
     epochs = parser.epoch
-    batch_size = parser.batchsize
+    batch_size = parser.batch_size
     is_augment = parser.augmentation
     train_dict = {model_unet.inputs: valid.images_original, model_unet.teacher: valid.images_segmented,
                   model_unet.is_training: False}
@@ -103,7 +105,7 @@ def train(parser):
                 test_set = [test.images_original[idx_test],
                             outputs_test[0], test.images_segmented[idx_test]]
                 reporter.save_image_from_ndarray(train_set, test_set, train.palette, epoch,
-                                                 index_void=len(ld.DataSet.CATEGORY)-1)
+                                                 index_void=len(ld.DataSet.CATEGORY) - 1)
 
     # 訓練済みモデルの評価
     # Test the trained model
@@ -126,7 +128,7 @@ def get_parser():
     parser.add_argument('-g', '--gpu', action='store_true', help='Using GPUs')
     parser.add_argument('-e', '--epoch', type=int,
                         default=250, help='Number of epochs')
-    parser.add_argument('-b', '--batchsize', type=int,
+    parser.add_argument('-b', '--batch_size', type=int,
                         default=32, help='Batch size')
     parser.add_argument('-t', '--trainrate', type=float,
                         default=0.85, help='Training rate')

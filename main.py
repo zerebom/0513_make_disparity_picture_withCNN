@@ -17,25 +17,29 @@ from Models.simple_auto_encoder import Simple_auto_encoder
 from Models.unet import UNet
 from tensorflow.python.keras.layers import Input
 import tensorflow as tf
-import datetime
+from datetime import datetime as dt
 from tensorflow import keras
 from Utils.reporter import Reporter
-from Utils.loader import Dataset, Loader
+from Utils.loader import DataSet, Loader
 
 import json
 import glob
 
 INPUT_SIZE = (256, 256)
-
+CONCAT_LEFT_RIGHT=True
 
 def train(parser):
 
     configs = json.load(open('./settings.json'))
     reporter = Reporter(parser=parser)
-    loader = Loader(configs['dataset_path2'],parser.batch_size)
-    loader.add_input()
-    tr,val,test=loader.return_gen()
-    
+    loader = Loader(configs['dataset_path2'], parser.batch_size)
+    if CONCAT_LEFT_RIGHT:
+        loader.concat_left_right()
+        reporter.add_log_documents('Done concat_left_right.')
+
+
+    train_gen, valid_gen, test_gen = loader.return_gen()
+    train_steps, valid_steps, test_steps = loader.return_step()
 
     # ---------------------------model----------------------------------
 
@@ -43,7 +47,6 @@ def train(parser):
     output_channel_count = 3
     first_layer_filter_count = 32
 
-    # network = Simple_auto_encoder(input_channel_count, output_channel_count, first_layer_filter_count)
     network = UNet(input_channel_count, output_channel_count, first_layer_filter_count)
     model = network.get_model()
 
@@ -51,18 +54,8 @@ def train(parser):
     model.summary()
 
     # ---------------------------training----------------------------------
-    batch_size = parser.batchsize
+    batch_size = parser.batch_size
     epochs = parser.epoch
-
-    train_list, valid_list, test_list = train_valid_test_splits(len(Left_RGB))
-
-    train_gen = generator_with_preprocessing(train_list, batch_size, input_channel=parser.input_channel)
-    valid_gen = generator_with_preprocessing(valid_list, batch_size, input_channel=parser.input_channel)
-    test_gen = generator_with_preprocessing(test_list, batch_size, input_channel=parser.input_channel)
-
-    train_steps = math.ceil(len(train_list) / batch_size)
-    valid_steps = math.ceil(len(valid_list) / batch_size)
-    test_steps = math.ceil(len(test_list) / batch_size)
 
     config = tf.ConfigProto()
     config.gpu_options.per_process_gpu_memory_fraction = 0.9
@@ -70,8 +63,8 @@ def train(parser):
     sess = tf.Session(config=config)
 
     # fit_generatorのコールバック関数の指定・TensorBoardとEarlyStoppingの指定
-    
-    logdir=os.path.join('./logs',dt.today().strftime("%Y%m%d_%H%M"))
+
+    logdir = os.path.join('./logs', dt.today().strftime("%Y%m%d_%H%M"))
     os.makedirs(logdir, exist_ok=True)
     tb_cb = TensorBoard(log_dir=logdir, histogram_freq=1, write_graph=True, write_images=True)
 
@@ -79,7 +72,7 @@ def train(parser):
 
     print("start training.")
     # Pythonジェネレータ（またはSequenceのインスタンス）によりバッチ毎に生成されたデータでモデルを訓練します．
-    history=model.fit_generator(
+    history = model.fit_generator(
         generator=train_gen,
         steps_per_epoch=train_steps,
         epochs=epochs,
@@ -87,11 +80,11 @@ def train(parser):
         validation_steps=valid_steps,
         # use_multiprocessing=True,
         callbacks=[es_cb, tb_cb])
-    
+
     print("finish training. And start making predict.")
-    
-    # train_preds = model.predict_generator(train_gen, steps=train_steps, verbose=1)
-    # valid_preds = model.predict_generator(valid_gen, steps=valid_steps, verbose=1)
+
+    train_preds = model.predict_generator(train_gen, steps=train_steps, verbose=1)
+    valid_preds = model.predict_generator(valid_gen, steps=valid_steps, verbose=1)
     test_preds = model.predict_generator(test_gen, steps=test_steps, verbose=1)
 
     print("finish making predict. And render preds.")
@@ -102,13 +95,16 @@ def train(parser):
     reporter.generate_main_dir()
     reporter.plot_history(history)
     reporter.save_params(parser, history)
-    
+
     input_img_list = []
     # reporter.plot_predict(train_list, Left_RGB, Right_RGB, train_preds, INPUT_SIZE, save_folder='train')
-    # reporter.plot_predict(valid_list, Left_RGB, Right_RGB, valid_preds, INPUT_SIZE,save_folder='valid')
-    reporter.plot_predict(test_list, Left_RGB, Right_RGB, test_preds, INPUT_SIZE, save_folder='test')
+    reporter.plot_predict(loader.train_list, loader.Left_slide, loader.Left_RGB,
+                          valid_preds, INPUT_SIZE, save_folder='train')
+    reporter.plot_predict(loader.valid_list, loader.Left_slide, loader.Left_RGB,
+                          valid_preds, INPUT_SIZE, save_folder='valid')
+    reporter.plot_predict(loader.test_list, loader.Left_slide, loader.Left_RGB,
+                          test_preds, INPUT_SIZE, save_folder='test')
     model.save("model.h5")
-
 
 
 def get_parser():
@@ -121,12 +117,12 @@ def get_parser():
 
     parser.add_argument('-e', '--epoch', type=int,
                         default=100, help='Number of epochs')
-    parser.add_argument('-b', '--batchsize', type=int,
-                        default=16, help='Batch size')
+    parser.add_argument('-b', '--batch_size', type=int,
+                        default=32, help='Batch size')
     parser.add_argument('-t', '--trainrate', type=float,
                         default=0.85, help='Training rate')
     parser.add_argument('-es', '--early_stopping', type=int,
-                        default=10, help='early_stopping patience')
+                        default=20, help='early_stopping patience')
 
     parser.add_argument('-i', '--input_channel', type=int,
                         default=5, help='input_channel')
