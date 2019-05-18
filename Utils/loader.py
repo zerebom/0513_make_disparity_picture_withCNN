@@ -55,11 +55,6 @@ class Loader(object):
         self.Left_slide = self.Left_fill
         self.Right_slide = self.Right_fill
 
-    # def extract_paths(self,load_dir:'str')->'path_list':
-    #     return glob.glob(os.path.join(self.DATASET_PATH[load_dir], '*png'))
-
-    # def add_input(self, batch_list, add_channel):
-    #     self.load_batch_img_array(batch_list, add_channel)
 
     def return_gen(self):
         self.imgs_length = len(self.Left_RGB)
@@ -69,12 +64,9 @@ class Loader(object):
         self.train_steps = math.ceil(len(self.train_list) / self.batch_size)
         self.valid_steps = math.ceil(len(self.valid_list) / self.batch_size)
         self.test_steps = math.ceil(len(self.test_list) / self.batch_size)
-        self.train_gen = self.generator_with_preprocessing(
-            self.train_list, self.batch_size)
-        self.valid_gen = self.generator_with_preprocessing(
-            self.valid_list, self.batch_size)
-        self.test_gen = self.generator_with_preprocessing(
-            self.test_list, self.batch_size)
+        self.train_gen = self.generator_with_preprocessing(self.train_list, self.batch_size)
+        self.valid_gen = self.generator_with_preprocessing(self.valid_list, self.batch_size)
+        self.test_gen = self.generator_with_preprocessing(self.test_list, self.batch_size)
         return self.train_gen, self.valid_gen, self.test_gen
 
     def return_step(self):
@@ -121,19 +113,7 @@ class Loader(object):
             teach_img = img_to_array(
                 load_img(self.Left_RGB[i], color_mode='rgb', target_size=self.size)).astype(np.uint8)
             
-            #バッチサイズが二倍になってしまう                
-            # if add_Right:
-            #     RS_img = img_to_array(
-            #     load_img(self.Right_slide[i], color_mode='rgb', target_size=self.size)).astype(np.uint8)
-            #     LD_img = img_to_array(
-            #     load_img(self.Left_disparity[i], color_mode='grayscale', target_size=self.size)).astype(np.uint8)
-            #     RD_img = img_to_array(
-            #     load_img(self.Right_disparity[i], color_mode='grayscale', target_size=self.size)).astype(np.uint8)
-                
-            #     input_img2 = np.concatenate((RS_img, LD_img, RD_img), 2).astype(np.uint8)
-            #     teach_img2 = img_to_array(load_img(self.Right_RGB[i], color_mode='rgb', target_size=self.size)).astype(np.uint8)
-
-
+            #バッチサイズが二倍になってしまう            
             input_img_list.append(input_img)
             teach_img_list.append(teach_img)
 
@@ -141,16 +121,8 @@ class Loader(object):
 
     def generator_with_preprocessing(self, img_id_list, batch_size):#, *input_paths
         while True:
-
-            # if shuffle:
-            #     np.random.shuffle(img_id_list)
-
-            # tupleを剥いてる
-            # input_paths = input_paths[0]
             for i in range(0, len(img_id_list), batch_size):
                 batch_list = img_id_list[i:i + batch_size]
-
-                # print(batch_input)
                 batch_input, batch_teach = self.load_batch_img_array(batch_list)
 
                 yield(batch_input, batch_teach)
@@ -158,14 +130,4 @@ class Loader(object):
 
 class DataSet:
     pass
-    # @staticmethod
-    # def concat_channel(base_arrays, add_arrays,:
-    #     img_list = []
-    #     if len(base_arrays) != len(add_arrays):
-    #         raise ValueError("concat imgs must be same size.")
 
-    #     for base, add in zip(base_arrays, add_arrays):
-    #         img = np.concatenate((base, add), 2).astype(np.uint8)
-    #         img_list.append(img)
-
-    #     return np.stack(img_list)

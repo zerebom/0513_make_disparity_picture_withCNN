@@ -28,6 +28,8 @@ import glob
 INPUT_SIZE = (256, 256)
 CONCAT_LEFT_RIGHT=True
 CHANGE_SLIDE2_FILL = True
+
+
 def train(parser):
 
     configs = json.load(open('./settings.json'))
