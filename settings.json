@@ -7,12 +7,16 @@
         },
 
     "dataset_path2": {
-        "Left_RGB": "./Data/slide_dis/Modify/Left_RGB/splits",
-        "Right_RGB": "./Data/slide_dis/Modify/Right_RGB/splits",
-        "Left_disparity": "./Data/slide_dis/Modify/Left_disparity/splits",
-        "Right_disparity": "./Data/slide_dis/Modify/Right_disparity/splits",
-        "Left_slide": "./Data/slide_dis/Modify/Left_slide/splits",
-        "Right_slide": "./Data/slide_dis/Modify/Right_slide/splits"
+        "Left_RGB": "./Data/slide_dis/Modify/Left_RGB/splits2",
+        "Right_RGB": "./Data/slide_dis/Modify/Right_RGB/splits2",
+        "Left_disparity": "./Data/slide_dis/Modify/Left_disparity/splits2",
+        "Right_disparity": "./Data/slide_dis/Modify/Right_disparity/splits2",
+        "Left_slide": "./Data/slide_dis/Modify/Left_slide/splits2",
+        "Right_slide": "./Data/slide_dis/Modify/Right_slide/splits2",
+        "Left_bin":"./Data/slide_dis/Modify/Left_slide/splits2_bin",
+        "Right_bin":"./Data/slide_dis/Modify/Right_slide/splits2_bin",
+        "Left_fill": "./Data/slide_dis/Modify/Left_slide/splits2_fill",
+        "Right_fill": "./Data/slide_dis/Modify/Right_slide/splits2_fill"
 
     },
     "TensorBoard_code":"tensorboard --logdir==logs"

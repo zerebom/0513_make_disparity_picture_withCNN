@@ -39,13 +39,21 @@ class Loader(object):
         """
         for key, path in self.DATASET_PATH.items():
             setattr(self, key, glob.glob(os.path.join(path, '*png')))
-
+    
+    #左右の画像を結合してデータを二倍にする
     def concat_left_right(self):
         self.Left_slide += self.Right_slide
         self.Left_RGB += self.Right_RGB
         self.Left_disparity += self.Left_disparity
         self.Right_disparity += self.Right_disparity
+        self.Left_bin += self.Left_bin
+        self.Right_bin += self.Right_bin
         print('Done concat_left_right.')
+    
+    #入力で使う画像を平均値で埋めた画像にする
+    def change_slide2fill(self):
+        self.Left_slide = self.Left_fill
+        self.Right_slide = self.Right_fill
 
     # def extract_paths(self,load_dir:'str')->'path_list':
     #     return glob.glob(os.path.join(self.DATASET_PATH[load_dir], '*png'))
@@ -55,18 +63,18 @@ class Loader(object):
 
     def return_gen(self):
         self.imgs_length = len(self.Left_RGB)
-        self.train_paths = (self.Left_slide, self.Right_disparity, self.Left_disparity)
-        self.teach_path = self.Left_RGB
+        # self.train_paths = (self.Left_slide, self.Right_disparity, self.Left_disparity)
+        # sel = self.Left_RGB
         self.train_list, self.valid_list, self.test_list = self.train_valid_test_splits(self.imgs_length)
         self.train_steps = math.ceil(len(self.train_list) / self.batch_size)
         self.valid_steps = math.ceil(len(self.valid_list) / self.batch_size)
         self.test_steps = math.ceil(len(self.test_list) / self.batch_size)
         self.train_gen = self.generator_with_preprocessing(
-            self.train_list, self.batch_size, self.teach_path, self.train_paths)
+            self.train_list, self.batch_size)
         self.valid_gen = self.generator_with_preprocessing(
-            self.valid_list, self.batch_size, self.teach_path, self.train_paths)
+            self.valid_list, self.batch_size)
         self.test_gen = self.generator_with_preprocessing(
-            self.test_list, self.batch_size, self.teach_path, self.train_paths)
+            self.test_list, self.batch_size)
         return self.train_gen, self.valid_gen, self.test_gen
 
     def return_step(self):
@@ -85,7 +93,7 @@ class Loader(object):
 
         return train_list, valid_list, test_list
 
-    def load_batch_img_array(self, batch_list, prepro_callback=False):
+    def load_batch_img_array(self, batch_list, prepro_callback=False,use_bin=True):
         teach_img_list = []
         input_img_list = []
         for i in batch_list:
@@ -96,7 +104,20 @@ class Loader(object):
             RD_img = img_to_array(
                 load_img(self.Right_disparity[i], color_mode='grayscale', target_size=self.size)).astype(np.uint8)
 
-            input_img = np.concatenate((LS_img, LD_img, RD_img), 2).astype(np.uint8)
+            if use_bin:
+                LB_img = img_to_array(
+                    load_img(self.Left_bin[i], color_mode='grayscale', target_size=self.size)).astype(np.uint8)
+                # LB_img=np.where(LB_img==255,1,LB_img)
+
+                RB_img = img_to_array(
+                    load_img(self.Right_bin[i], color_mode='grayscale', target_size=self.size)).astype(np.uint8)
+                # RB_img = np.where(RB_img == 255, 1, RB_img)
+
+                input_img = np.concatenate((LS_img, LD_img, RD_img, LB_img, RB_img), 2).astype(np.uint8)
+            else:
+                input_img=np.concatenate((LS_img, LD_img, RD_img), 2).astype(np.uint8)
+
+
             teach_img = img_to_array(
                 load_img(self.Left_RGB[i], color_mode='rgb', target_size=self.size)).astype(np.uint8)
             
@@ -118,14 +139,14 @@ class Loader(object):
 
         return np.stack(input_img_list), np.stack(teach_img_list)
 
-    def generator_with_preprocessing(self, img_id_list, batch_size, teach_path, *input_paths):
+    def generator_with_preprocessing(self, img_id_list, batch_size):#, *input_paths
         while True:
 
             # if shuffle:
             #     np.random.shuffle(img_id_list)
 
             # tupleを剥いてる
-            input_paths = input_paths[0]
+            # input_paths = input_paths[0]
             for i in range(0, len(img_id_list), batch_size):
                 batch_list = img_id_list[i:i + batch_size]
 

@@ -91,7 +91,7 @@ class Reporter:
         dst.paste(im2, (im1.width, 0))
         return dst
 
-    def plot_predict(self, img_num_list, Left_RGB, Right_RGB, preds, INPUT_SIZE, max_output=20,save_folder='train',train_mode=True):
+    def plot_predict(self, img_num_list, Left_RGB, Right_RGB, preds, INPUT_SIZE, max_output=20,save_folder='train'):
         if len(img_num_list) > max_output:
             img_num_list=img_num_list[:max_output]
         for i, num in enumerate(img_num_list):

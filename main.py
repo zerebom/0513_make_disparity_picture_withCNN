@@ -27,12 +27,17 @@ import glob
 
 INPUT_SIZE = (256, 256)
 CONCAT_LEFT_RIGHT=True
-
+CHANGE_SLIDE2_FILL = True
 def train(parser):
 
     configs = json.load(open('./settings.json'))
     reporter = Reporter(parser=parser)
     loader = Loader(configs['dataset_path2'], parser.batch_size)
+    
+    if CHANGE_SLIDE2_FILL:
+        loader.change_slide2fill()
+        reporter.add_log_documents('Done change_slide2fill.')
+
     if CONCAT_LEFT_RIGHT:
         loader.concat_left_right()
         reporter.add_log_documents('Done concat_left_right.')
@@ -99,7 +104,7 @@ def train(parser):
     input_img_list = []
     # reporter.plot_predict(train_list, Left_RGB, Right_RGB, train_preds, INPUT_SIZE, save_folder='train')
     reporter.plot_predict(loader.train_list, loader.Left_slide, loader.Left_RGB,
-                          valid_preds, INPUT_SIZE, save_folder='train')
+                          train_preds, INPUT_SIZE, save_folder='train')
     reporter.plot_predict(loader.valid_list, loader.Left_slide, loader.Left_RGB,
                           valid_preds, INPUT_SIZE, save_folder='valid')
     reporter.plot_predict(loader.test_list, loader.Left_slide, loader.Left_RGB,
@@ -116,7 +121,7 @@ def get_parser():
     )
 
     parser.add_argument('-e', '--epoch', type=int,
-                        default=100, help='Number of epochs')
+                        default=200, help='Number of epochs')
     parser.add_argument('-b', '--batch_size', type=int,
                         default=32, help='Batch size')
     parser.add_argument('-t', '--trainrate', type=float,
@@ -125,7 +130,7 @@ def get_parser():
                         default=20, help='early_stopping patience')
 
     parser.add_argument('-i', '--input_channel', type=int,
-                        default=5, help='input_channel')
+                        default=7, help='input_channel')
 
     parser.add_argument('-a', '--augmentation',
                         action='store_true', help='Number of epochs')
