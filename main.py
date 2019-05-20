@@ -15,6 +15,9 @@ from tensorflow.python.keras.preprocessing.image import load_img, img_to_array, 
 from Models import deep_auto_encoder
 from Models.simple_auto_encoder import Simple_auto_encoder
 from Models.unet import UNet
+from Models.dn_cnn import DN_CNN
+import time
+
 from tensorflow.python.keras.layers import Input
 import tensorflow as tf
 from datetime import datetime as dt
@@ -30,8 +33,9 @@ CONCAT_LEFT_RIGHT=True
 CHANGE_SLIDE2_FILL = True
 
 
-def train(parser):
 
+def train(parser):
+    START_TIME = time.time()
     configs = json.load(open('./settings.json'))
     reporter = Reporter(parser=parser)
     loader = Loader(configs['dataset_path2'], parser.batch_size)
@@ -52,9 +56,9 @@ def train(parser):
 
     input_channel_count = parser.input_channel
     output_channel_count = 3
-    first_layer_filter_count = 32
+    first_layer_filter_count = parser.filter
 
-    network = UNet(input_channel_count, output_channel_count, first_layer_filter_count)
+    network = DN_CNN(input_channel_count, output_channel_count, first_layer_filter_count)
     model = network.get_model()
 
     model.compile(optimizer='adam', loss='mse')
@@ -73,7 +77,7 @@ def train(parser):
 
     logdir = os.path.join('./logs', dt.today().strftime("%Y%m%d_%H%M"))
     os.makedirs(logdir, exist_ok=True)
-    tb_cb = TensorBoard(log_dir=logdir, histogram_freq=1, write_graph=True, write_images=True)
+    tb_cb = TensorBoard(log_dir=logdir, histogram_freq=0, write_graph=True, write_images=True)
 
     es_cb = EarlyStopping(monitor='val_loss', patience=parser.early_stopping, verbose=1, mode='auto')
 
@@ -96,6 +100,9 @@ def train(parser):
 
     print("finish making predict. And render preds.")
 
+
+    ELAPSED_TIME = int(time.time() - START_TIME)
+    reporter.add_log_documents(f'ELAPSED_TIME:{ELAPSED_TIME} [sec]')
     # ==========================report====================================
     reporter.add_val_loss(history.history['val_loss'])
     reporter.add_model_name(network.__class__.__name__)
@@ -123,13 +130,16 @@ def get_parser():
     )
 
     parser.add_argument('-e', '--epoch', type=int,
-                        default=200, help='Number of epochs')
+                        default=100, help='Number of epochs')
+    parser.add_argument('-f', '--filter', type=int,
+                        default=32, help='Number of model first_filters')
+    
     parser.add_argument('-b', '--batch_size', type=int,
-                        default=32, help='Batch size')
+                        default=16, help='Batch size')
     parser.add_argument('-t', '--trainrate', type=float,
                         default=0.85, help='Training rate')
     parser.add_argument('-es', '--early_stopping', type=int,
-                        default=20, help='early_stopping patience')
+                        default=10, help='early_stopping patience')
 
     parser.add_argument('-i', '--input_channel', type=int,
                         default=7, help='input_channel')

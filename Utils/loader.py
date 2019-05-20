@@ -84,6 +84,9 @@ class Loader(object):
         test_list = data_array[vl:]
 
         return train_list, valid_list, test_list
+    
+    # def load_img_no_generator(self,):
+
 
     def load_batch_img_array(self, batch_list, prepro_callback=False,use_bin=True):
         teach_img_list = []

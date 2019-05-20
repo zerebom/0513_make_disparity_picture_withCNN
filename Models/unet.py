@@ -25,6 +25,7 @@ class UNet:
         inputs = Input((self.INPUT_IMAGE_SIZE, self.INPUT_IMAGE_SIZE, input_channel_count))
 
         # エンコーダーの作成
+        #↓first_filterはフィルターの数。
         # (128 x 128 x N)
         enc1 = ZeroPadding2D(self.CONV_PADDING)(inputs)
         enc1 = Conv2D(first_layer_filter_count, self.CONV_FILTER_SIZE, strides=self.CONV_STRIDE)(enc1)
