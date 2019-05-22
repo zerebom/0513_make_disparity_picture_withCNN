@@ -29,6 +29,7 @@ import json
 import glob
 
 INPUT_SIZE = (256, 256)
+SAVE_BATCH_SIZE=2
 CONCAT_LEFT_RIGHT=True
 CHANGE_SLIDE2_FILL = True
 
@@ -38,7 +39,7 @@ def train(parser):
     START_TIME = time.time()
     configs = json.load(open('./settings.json'))
     reporter = Reporter(parser=parser)
-    loader = Loader(configs['dataset_path2'], parser.batch_size)
+    loader = Loader(configs['dataset_path2'], parser.batch_size, parser=parser)
     
     if CHANGE_SLIDE2_FILL:
         loader.change_slide2fill()
@@ -58,7 +59,7 @@ def train(parser):
     output_channel_count = 3
     first_layer_filter_count = parser.filter
 
-    network = DN_CNN(input_channel_count, output_channel_count, first_layer_filter_count)
+    network = UNet(input_channel_count, output_channel_count, first_layer_filter_count,parser=parser)
     model = network.get_model()
 
     model.compile(optimizer='adam', loss='mse')
@@ -94,31 +95,51 @@ def train(parser):
 
     print("finish training. And start making predict.")
 
-    train_preds = model.predict_generator(train_gen, steps=train_steps, verbose=1)
-    valid_preds = model.predict_generator(valid_gen, steps=valid_steps, verbose=1)
     test_preds = model.predict_generator(test_gen, steps=test_steps, verbose=1)
-
+   
     print("finish making predict. And render preds.")
 
 
     ELAPSED_TIME = int(time.time() - START_TIME)
     reporter.add_log_documents(f'ELAPSED_TIME:{ELAPSED_TIME} [sec]')
+    
     # ==========================report====================================
-    reporter.add_val_loss(history.history['val_loss'])
-    reporter.add_model_name(network.__class__.__name__)
-    reporter.generate_main_dir()
-    reporter.plot_history(history)
-    reporter.save_params(parser, history)
+    parser.save_logs=True
+    if parser.save_logs:
+        reporter.add_val_loss(history.history['val_loss'])
+        reporter.add_model_name(network.__class__.__name__)
+        reporter.generate_main_dir()
+        reporter.plot_history(history)
+        reporter.save_params(history)
 
-    input_img_list = []
-    # reporter.plot_predict(train_list, Left_RGB, Right_RGB, train_preds, INPUT_SIZE, save_folder='train')
-    reporter.plot_predict(loader.train_list, loader.Left_slide, loader.Left_RGB,
-                          train_preds, INPUT_SIZE, save_folder='train')
-    reporter.plot_predict(loader.valid_list, loader.Left_slide, loader.Left_RGB,
-                          valid_preds, INPUT_SIZE, save_folder='valid')
-    reporter.plot_predict(loader.test_list, loader.Left_slide, loader.Left_RGB,
-                          test_preds, INPUT_SIZE, save_folder='test')
-    model.save("model.h5")
+        train_gen, valid_gen, _ = loader.return_gen()
+        
+        for i in range(min(train_steps,SAVE_BATCH_SIZE)):
+            batch_input, batch_teach = next(train_gen)
+            batch_preds = model.predict(batch_input)
+            if parser.normalize_luminance:
+                batch_input = loader.normalize2img(batch_input)
+                batch_teach = loader.normalize2img(batch_teach)
+            reporter.plot_predict2(batch_input,batch_preds,batch_teach,'train',batch_num=i)
+
+        for i in range(min(valid_steps, SAVE_BATCH_SIZE)):
+            batch_input, batch_teach = next(valid_gen)
+            batch_preds = model.predict(batch_input)
+            if parser.normalize_luminance:
+                batch_input = loader.normalize2img(batch_input)
+                batch_teach = loader.normalize2img(batch_teach)
+            reporter.plot_predict2(batch_input, batch_preds, batch_teach, 'valid', batch_num=i)
+            
+        for i in range(min(test_steps, SAVE_BATCH_SIZE)):
+            batch_input, batch_teach = next(test_gen)
+            batch_preds = model.predict(batch_input)
+            if parser.normalize_luminance:
+                batch_input = loader.normalize2img(batch_input)
+                batch_teach = loader.normalize2img(batch_teach)
+            reporter.plot_predict2(batch_input, batch_preds, batch_teach, 'test', batch_num=i)
+
+
+        model.save("model.h5")
 
 
 def get_parser():
@@ -128,12 +149,11 @@ def get_parser():
         description='This module　generate parallax image using U-Net.',
         add_help=True
     )
-
-    parser.add_argument('-e', '--epoch', type=int,
-                        default=100, help='Number of epochs')
-    parser.add_argument('-f', '--filter', type=int,
-                        default=32, help='Number of model first_filters')
     
+    parser.add_argument('-e', '--epoch', type=int,
+                        default=200, help='Number of epochs')
+    parser.add_argument('-f', '--filter', type=int,
+                        default=64, help='Number of model first_filters')
     parser.add_argument('-b', '--batch_size', type=int,
                         default=16, help='Batch size')
     parser.add_argument('-t', '--trainrate', type=float,
@@ -142,10 +162,16 @@ def get_parser():
                         default=10, help='early_stopping patience')
 
     parser.add_argument('-i', '--input_channel', type=int,
-                        default=7, help='input_channel')
-
+                        default=5, help='input_channel')
     parser.add_argument('-a', '--augmentation',
                         action='store_true', help='Number of epochs')
+    parser.add_argument('-s', '--save_logs',
+                        action='store_true', help='save or not logs')
+    parser.add_argument('-in', '--insert_skip_inputs',
+                        action='store_false', help='insert_skip_inputs')
+    
+    parser.add_argument('-n', '--normalize_luminance',
+                        action='store_true', help='normalize_luminance')
 
     return parser
 

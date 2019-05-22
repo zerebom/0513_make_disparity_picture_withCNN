@@ -21,6 +21,7 @@ class Reporter:
         self._root_dir = self.ROOT_DIR
         self.create_dirs()
         self.parameters = list()
+        self.parser=parser
     # def make_main_dir(self):
 
     def add_model_name(self, model_name):
@@ -66,16 +67,24 @@ class Reporter:
 
 
     
-    def save_params(self,parser,history):
+    def save_params(self,history):
         
         #early_stoppingを考慮
         self.parameters.append("Number of epochs:" + str(len(history.history['val_loss'])))
-        self.parameters.append("Batch size:" + str(parser.batch_size))
-        self.parameters.append("Training rate:" + str(parser.trainrate))
-        self.parameters.append("Augmentation:" + str(parser.augmentation))
-        self.parameters.append("input_channel:" + str(parser.input_channel))
-        self.parameters.append("min_val_loss:" + str(min(history.history['val_loss'])))
-        self.parameters.append("min_loss:" + str(min(history.history['loss'])))
+        self.parameters.append("Batch size:" + str(self.parser.batch_size))
+        self.parameters.append("Training rate:" + str(self.parser.trainrate))
+        self.parameters.append("Augmentation:" + str(self.parser.augmentation))
+        self.parameters.append("input_channel:" + str(self.parser.input_channel))
+        self.parameters.append("insert_skip_inputs:" + str(self.parser.insert_skip_inputs))
+        self.parameters.append("normalize_luminance:" + str(self.parser.normalize_luminance))
+        
+        if self.parser.normalize_luminance:
+            self.parameters.append("min_val_loss:" + str(min(history.history['val_loss']) * 65025))
+            self.parameters.append("min_loss:" + str(min(history.history['loss'])))
+        else:
+            self.parameters.append("min_val_loss:" + str(min(history.history['val_loss'] * 65025)))
+            self.parameters.append("min_loss:" + str(min(history.history['loss'])))
+
 
         # self.parameters.append("L2 regularization:" + str(parser.l2reg))
         output = "\n".join(self.parameters)
@@ -90,6 +99,26 @@ class Reporter:
         dst.paste(im1, (0, 0))
         dst.paste(im2, (im1.width, 0))
         return dst
+    
+    @staticmethod
+    def normalize2img(img_array):
+        img_array = img_array.astype(np.float64)
+        img_array *= 255
+        img_array += 122.5
+        img_array = img_array.astype(np.uint8)
+        return img_array
+
+    def plot_predict2(self, batch_input, batch_pred, batch_teach: '4dim_array', save_folder='train',batch_num=1) -> 'im':
+        for i in range(batch_input.shape[0]):
+            pred_img = array_to_img(batch_pred[i,:,:,:].astype(np.uint8))
+            #RGB
+            input_img=array_to_img(batch_input[i,:,:,0:3].astype(np.uint8))
+            teach_img=array_to_img(batch_teach[i,:,:,:].astype(np.uint8))
+            
+            concat_img = self.get_concat_h(input_img, pred_img)
+            concat_img = self.get_concat_h(concat_img, teach_img)
+            os.makedirs(os.path.join(self.main_dir,save_folder), exist_ok=True)
+            array_to_img(concat_img).save(os.path.join(self.main_dir, save_folder, f'pred_{self.parser.batch_size*batch_num+i}.png'))
 
     def plot_predict(self, img_num_list, Left_RGB, Right_RGB, preds, INPUT_SIZE, max_output=20,save_folder='train'):
         if len(img_num_list) > max_output:
@@ -97,12 +126,17 @@ class Reporter:
         for i, num in enumerate(img_num_list):
             if i == 1:
                 print(preds[i].astype(np.uint8))
-                        
-            pred_img = array_to_img(preds[i].astype(np.uint8))
+            
+            pred_img=preds[i].astype(np.uint8)
+                    
+            if self.parser.normalize_luminance:
+                pred_img = self.normalize2img(pred_img)
+            
+            pred_img = array_to_img(pred_img)
            
-            train_img = load_img(Left_RGB[num], target_size=INPUT_SIZE)
+            input_img = load_img(Left_RGB[num], target_size=INPUT_SIZE)
             teach_img = load_img(Right_RGB[num], target_size=INPUT_SIZE)
-            concat_img = self.get_concat_h(train_img, pred_img)
+            concat_img = self.get_concat_h(input_img, pred_img)
             concat_img = self.get_concat_h(concat_img, teach_img)
             os.makedirs(os.path.join(self.main_dir,save_folder), exist_ok=True)
             array_to_img(concat_img).save(os.path.join(self.main_dir, save_folder, f'pred_{num}.png'))

@@ -11,7 +11,7 @@ from tensorflow.python.keras.layers import LeakyReLU, BatchNormalization, Activa
 
 
 class UNet:
-    def __init__(self, input_channel_count, output_channel_count, first_layer_filter_count):
+    def __init__(self, input_channel_count, output_channel_count, first_layer_filter_count,parser):
         self.name = self.__class__.__name__.lower()
         self.INPUT_IMAGE_SIZE = 256
         self.CONCATENATE_AXIS = -1
@@ -20,7 +20,7 @@ class UNet:
         self.CONV_PADDING = (1, 1)
         self.DECONV_FILTER_SIZE = 2
         self.DECONV_STRIDE = 2
-
+        self.parser = parser
         # (128 x 128 x input_channel_count)
         inputs = Input((self.INPUT_IMAGE_SIZE, self.INPUT_IMAGE_SIZE, input_channel_count))
 
@@ -79,6 +79,8 @@ class UNet:
         filter_count = first_layer_filter_count * 2
         dec6 = self._add_decoding_layer(filter_count, False, dec5)
         dec6 = concatenate([dec6, enc1], axis=self.CONCATENATE_AXIS)
+   
+
 
         # # (128 x 128 x N)
         # filter_count = first_layer_filter_count
@@ -88,7 +90,12 @@ class UNet:
         # (256 x 256 x output_channel_count)
         dec7 = Activation(activation='relu')(dec6)
         dec7 = Conv2DTranspose(output_channel_count, self.DECONV_FILTER_SIZE, strides=self.DECONV_STRIDE)(dec7)
-        # dec7 = Activation(activation='sigmoid')(dec7)
+        if self.parser.insert_skip_inputs:
+            dec7 = concatenate([dec7, inputs], axis=self.CONCATENATE_AXIS)
+            dec7 = Conv2D(output_channel_count,kernel_size=3, padding='same', strides=1)(dec7)
+        
+        if self.parser.normalize_luminance:
+            dec7 = Activation(activation='tanh')(dec7)
 
         self.UNET = Model(inputs, dec7)
 
